@@ -20,11 +20,17 @@
 ## **docker image**: ghcr.io/sherlock0088/plant-lncrna-pipline
 
 Usage: /usr/local/bin/lnc_pipeline -g <genome_fasta> -s <strandness> -l <sample_list> -p <threads> -gff <annotation_gtf> -w <work_dir>
+
   -g: Path to the reference genome .fasta or .fa file
+  
   -s: Strandness (SS or normal)
+  
   -l: Path to the sample list file (.txt or .tsv)
+  
   -p: Number of threads to use
+  
   -gff: Path to the annotation .gtf file
+  
   -w: Path to the working directory for storing intermediate files
 
 
