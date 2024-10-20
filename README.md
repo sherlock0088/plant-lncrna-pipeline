@@ -17,6 +17,8 @@
 
 #### **Email:** xuechan.tian@bjfu.edu.cn;  jianfeng.mao@umu.se
 
+## **docker image**: ghcr.io/sherlock0088/plant-lncrna-pipline
+
 
 
 
