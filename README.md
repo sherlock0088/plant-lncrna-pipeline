@@ -56,7 +56,7 @@
 
 
 
-# **following contents are just from original repo, can be igored.**
+# **Following contents are just from original repo, can be igored.**
 
 
 ## **1. Dependencies.** 
