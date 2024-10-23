@@ -59,7 +59,11 @@ if [[ ! -f "$GTF_CONVERTED" ]]; then
         fi
         ANNOTATION_GTF="$GTF_CONVERTED"
     fi
+else
+    ANNOTATION_GTF="$GTF_CONVERTED"
+    echo "Using existed GTF file."
 fi
+
 
 # Step 2: Build HiSat2 index if not present
 INDEX_FILE="$WORK_DIR/genome.index.1.ht2"
@@ -197,7 +201,7 @@ if [[ ! -f "$UNIPROT_OUTPUT" ]]; then
 fi
 
 # Step 12: Intersection of results
-FINAL_LNCRNA_RESULTS="$WORK_DIR/final_lncRNA_results.txt"
+FINAL_LNCRNA_RESULTS="final_lncRNA_results.txt"
 if [[ ! -f "$FINAL_LNCRNA_RESULTS" ]]; then
     echo "Performing intersection analysis..."
     Rscript --vanilla "$DATA_DIR/insersection.sh" "$TRANSCRIPT_FASTA_TXT" "$CANDIDATE_LNCRNA_TXT" "$CPAT_OUTPUT" "$LNCFINDER_RESULTS" "$UNIPROT_OUTPUT"

@@ -1,0 +1,6 @@
+/home/sherlock/results/NOR2/RNA/soapnuke/clean/CR1/CR1_1.fq /home/sherlock/results/NOR2/RNA/soapnuke/clean/CR1/CR1_2.fq 
+/home/sherlock/results/NOR2/RNA/soapnuke/clean/CR2/CR2_1.fq /home/sherlock/results/NOR2/RNA/soapnuke/clean/CR2/CR2_2.fq 
+/home/sherlock/results/NOR2/RNA/soapnuke/clean/CR3/CR3_1.fq /home/sherlock/results/NOR2/RNA/soapnuke/clean/CR3/CR3_2.fq 
+/home/sherlock/results/NOR2/RNA/soapnuke/clean/HR1/HR1_1.fq /home/sherlock/results/NOR2/RNA/soapnuke/clean/HR1/HR1_2.fq 
+/home/sherlock/results/NOR2/RNA/soapnuke/clean/HR2/HR2_1.fq /home/sherlock/results/NOR2/RNA/soapnuke/clean/HR2/HR2_2.fq 
+/home/sherlock/results/NOR2/RNA/soapnuke/clean/HR3/HR3_1.fq /home/sherlock/results/NOR2/RNA/soapnuke/clean/HR3/HR3_2.fq
