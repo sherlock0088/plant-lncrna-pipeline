@@ -17,15 +17,27 @@
 
 #### **Email:** xuechan.tian@bjfu.edu.cn;  jianfeng.mao@umu.se
 
-## **docker image**: ghcr.io/sherlock0088/plant-lncrna-pipline
 
-Usage: /usr/local/bin/lnc_pipeline -g <genome_fasta> -s <strandness> -l <sample_list> -p <threads> -gff <annotation_gtf> -w <work_dir>
+
+
+# **DOCKER**
+### **docker image**: ghcr.io/sherlock0088/plant-lncrna-pipline
+
+
+## **Pull the container image** 
+
+apptainer pull docker://ghcr.io/sherlock0088/plant-lncrna-pipeline:latest
+
+
+## **Run the container**
+
+apptainer exec plant_lncrna-pipeline.sif lnc_pipeline -g <genome_fasta> -s <strandness> -l <sample_list.txt> -p <threads> -gff <annotation_gtf> -w <work_dir>
 
   -g: Path to the reference genome .fasta or .fa file
   
   -s: Strandness (SS or normal)
   
-  -l: Path to the sample list file (.txt or .tsv)
+  -l: Path to the sample list file (.txt or .tsv, check the example samplelis.txt, reads1 should be 1st column, reads2 should be 2nd column)
   
   -p: Number of threads to use
   
