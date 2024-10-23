@@ -45,7 +45,7 @@
   
   -p: Number of threads to use
   
-  -f: Path to the annotation .gtf file
+  -f: Path to the annotation .gtf file, if gff3 file is provided then it will be converted to gtf
   
   -w: Path to the working directory for storing intermediate files
 
