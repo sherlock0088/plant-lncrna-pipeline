@@ -31,7 +31,7 @@ apptainer pull docker://ghcr.io/sherlock0088/plant-lncrna-pipeline:latest
 
 ## **Run the container**
 
-apptainer exec plant_lncrna-pipeline.sif lnc_pipeline -g <genome_fasta> -s <strandness> -l <sample_list.txt> -p <threads> -gff <annotation_gtf> -w <work_dir>
+apptainer exec plant_lncrna-pipeline.sif lnc_pipeline -g <genome_fasta> -s <strandness> -l <sample_list.txt> -p <threads> -f <annotation_gtf> -w <work_dir>
 
   -g: Path to the reference genome .fasta or .fa file
   
@@ -41,7 +41,7 @@ apptainer exec plant_lncrna-pipeline.sif lnc_pipeline -g <genome_fasta> -s <stra
   
   -p: Number of threads to use
   
-  -gff: Path to the annotation .gtf file
+  -f: Path to the annotation .gtf file
   
   -w: Path to the working directory for storing intermediate files
 
