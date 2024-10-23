@@ -26,13 +26,17 @@
 
 ## **Pull the container image** 
 
-apptainer pull docker://ghcr.io/sherlock0088/plant-lncrna-pipeline:latest
+	apptainer pull docker://ghcr.io/sherlock0088/plant-lncrna-pipeline:latest
 
 
 ## **Run the container**
 
-apptainer exec plant_lncrna-pipeline.sif lnc_pipeline -g <genome_fasta> -s <strandness> -l <sample_list.txt> -p <threads> -f <annotation_gtf> -w <work_dir>
+	apptainer exec plant_lncrna-pipeline.sif lnc_pipeline -g <genome_fasta> -s <strandness> -l <sample_list.txt> -p <threads> -f <annotation_gtf> -w <work_dir>
 
+  
+  
+  
+  
   -g: Path to the reference genome .fasta or .fa file
   
   -s: Strandness (SS or normal)
