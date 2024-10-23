@@ -51,6 +51,10 @@ apptainer exec plant_lncrna-pipeline.sif lnc_pipeline -g <genome_fasta> -s <stra
 
 
 
+
+# **following contents are just from original repo, can be igored.**
+
+
 ## **1. Dependencies.** 
 
 
