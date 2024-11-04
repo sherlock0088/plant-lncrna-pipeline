@@ -3,13 +3,14 @@ set -eu  # 添加严格模式，防止未处理的错误
 
 # Usage function to display help message
 usage() {
-    echo "Usage: $0 -g <genome_fasta> -s <strandness> -l <sample_list> -p <threads> -f <annotation_gtf> -w <work_dir>"
+    echo "Usage: $0 -g <genome_fasta> -s <strandness> -l <sample_list> -p <threads> -f <annotation_gtf> -w <work_dir> [-e]"
     echo "  -g: Path to the reference genome .fasta or .fa file"
     echo "  -s: Strandness (SS or normal)"
     echo "  -l: Path to the sample list file (.txt or .tsv)"
     echo "  -p: Number of threads to use"
     echo "  -f: Path to the annotation .gtf file"
     echo "  -w: Path to the working directory for storing intermediate files"
+    echo "  -e: Single-end reads (if omitted, assumes paired-end)"
 }
 
 # Initialize variables
@@ -19,9 +20,10 @@ SAMPLE_LIST=""
 THREADS=1  # Default to 1 thread
 ANNOTATION_GTF=""
 WORK_DIR=""
+SINGLE_END=false  # 默认是 paired-end
 
 # Parse options using getopts
-while getopts "g:s:l:p:f:w:" opt; do
+while getopts "g:s:l:p:f:w:e" opt; do
     case $opt in
         g) REFERENCE="$OPTARG" ;;
         s) STRANDNESS="$OPTARG" ;;
@@ -29,6 +31,7 @@ while getopts "g:s:l:p:f:w:" opt; do
         p) THREADS="$OPTARG" ;;
         f) ANNOTATION_GTF="$OPTARG" ;;
         w) WORK_DIR="$OPTARG" ;;
+        e) SINGLE_END=true ;;  # 设置 single-end 选项
         \?) usage; exit 1 ;;
     esac
 done
@@ -61,55 +64,107 @@ if [[ ! -f "$GTF_CONVERTED" ]]; then
     fi
 else
     ANNOTATION_GTF="$GTF_CONVERTED"
-    echo "Using existed GTF file."
+    echo "Using existing GTF file."
 fi
-
 
 # Step 2: Build HiSat2 index if not present
-INDEX_FILE="$WORK_DIR/genome.index.1.ht2"
-if [[ ! -f "$INDEX_FILE" ]]; then
-    echo "Building HiSat2 index..."
-    hisat2-build -p "$THREADS" "$REFERENCE" "$WORK_DIR/genome.index"
-    if [[ $? -ne 0 ]]; then
-        echo "Error: HiSat2 index building failed."
-        exit 1
-    fi
-fi
-
-# Step 3: Align reads with HiSat2 for each sample
-while read -r READ1 READ2; do
+while read -r READ1 READ2 || [[ -n "$READ1" ]]; do
     sample=$(basename "$READ1" | sed 's/_1.*//')
-    SAM_FILE="$WORK_DIR/${sample}.sam"
-    if [[ ! -f "$SAM_FILE" ]]; then
-        echo "Running HiSat2 for $sample..."
-        if [[ "$STRANDNESS" == "SS" ]]; then
-            hisat2 --rna-strandness RF -p "$THREADS" -x "$WORK_DIR/genome.index" -1 "$READ1" -2 "$READ2" -S "$SAM_FILE"
-        else
-            hisat2 -p "$THREADS" -x "$WORK_DIR/genome.index" -1 "$READ1" -2 "$READ2" -S "$SAM_FILE"
-        fi
+    INDEX_FILE="$WORK_DIR/genome.index.1.ht2"
+    if [[ ! -f "$INDEX_FILE" ]]; then
+        echo "Building HiSat2 index..."
+        hisat2-build -p "$THREADS" "$REFERENCE" "$WORK_DIR/genome.index"
         if [[ $? -ne 0 ]]; then
-            echo "Error: HiSat2 alignment failed for sample $sample."
+            echo "Error: HiSat2 index building failed."
             exit 1
         fi
     fi
 done < "$SAMPLE_LIST"
 
-# Step 4: Sort SAM files into BAM
-while read -r READ1 READ2; do
+# Step 3: Align reads with HiSat2 for each sample (only check BAM existence)
+if [[ "$SINGLE_END" == true ]]; then
+    while read -r READ1; do
+        sample=$(basename "$READ1" | sed 's/_1.*//')
+        BAM_FILE="$WORK_DIR/${sample}.bam"  # 只检查 BAM 文件
+        SAM_FILE="$WORK_DIR/${sample}.sam"
+        
+        if [[ ! -f "$BAM_FILE" ]]; then  # 如果 BAM 不存在则运行 HiSat2
+            echo "Running HiSat2 for single-end sample $sample..."
+            # single-end alignment
+            if [[ "$STRANDNESS" == "SS" ]]; then
+                hisat2 --rna-strandness R -p "$THREADS" -x "$WORK_DIR/genome.index" -U "$READ1" -S "$SAM_FILE"
+            else
+                hisat2 -p "$THREADS" -x "$WORK_DIR/genome.index" -U "$READ1" -S "$SAM_FILE"
+            fi
+            
+            if [[ $? -ne 0 ]]; then
+                echo "Error: HiSat2 alignment failed for sample $sample."
+                exit 1
+            fi
+        else
+            echo "BAM file for single-end sample $sample already exists. Skipping HiSat2."
+        fi
+    done < "$SAMPLE_LIST"
+else
+    while read -r READ1 READ2 || [[ -n "$READ1" ]]; do
+        sample=$(basename "$READ1" | sed 's/_1.*//')
+        BAM_FILE="$WORK_DIR/${sample}.bam"  # 只检查 BAM 文件
+        SAM_FILE="$WORK_DIR/${sample}.sam"
+        
+        if [[ ! -f "$BAM_FILE" ]]; then  # 如果 BAM 不存在则运行 HiSat2
+            echo "Running HiSat2 for paired-end sample $sample..."
+            # paired-end alignment
+            if [[ "$STRANDNESS" == "SS" ]]; then
+                hisat2 --rna-strandness RF -p "$THREADS" -x "$WORK_DIR/genome.index" -1 "$READ1" -2 "$READ2" -S "$SAM_FILE"
+            else
+                hisat2 -p "$THREADS" -x "$WORK_DIR/genome.index" -1 "$READ1" -2 "$READ2" -S "$SAM_FILE"
+            fi
+            
+            if [[ $? -ne 0 ]]; then
+                echo "Error: HiSat2 alignment failed for sample $sample."
+                exit 1
+            fi
+        else
+            echo "BAM file for paired-end sample $sample already exists. Skipping HiSat2."
+        fi
+    done < "$SAMPLE_LIST"
+fi
+
+# Step 4: Sort SAM files into BAM and generate CSI index
+while read -r READ1 READ2 || [[ -n "$READ1" ]]; do
     sample=$(basename "$READ1" | sed 's/_1.*//')
     BAM_FILE="$WORK_DIR/${sample}.bam"
-    if [[ ! -f "$BAM_FILE" ]]; then
-        echo "Sorting SAM file into BAM for $sample..."
-        samtools sort -@ "$THREADS" -o "$BAM_FILE" "$WORK_DIR/${sample}.sam"
-        if [[ $? -ne 0 ]]; then
-            echo "Error: SAM to BAM sorting failed for sample $sample."
-            exit 1
+    CSI_INDEX_FILE="${BAM_FILE}.csi"  # CSI 索引文件路径
+
+    # 检查是否已存在 BAM 文件和 CSI 索引文件
+    if [[ ! -f "$BAM_FILE" || ! -f "$CSI_INDEX_FILE" ]]; then
+        if [[ ! -f "$BAM_FILE" ]]; then
+            echo "Sorting SAM file into BAM for $sample..."
+            samtools sort -@ "$THREADS" -o "$BAM_FILE" "$WORK_DIR/${sample}.sam"
+            if [[ $? -ne 0 ]]; then
+                echo "Error: SAM to BAM sorting failed for sample $sample."
+                exit 1
+            fi
+            # 删除中间的 SAM 文件
+            rm "$WORK_DIR/${sample}.sam"
         fi
+
+        # 生成 CSI 索引
+        if [[ ! -f "$CSI_INDEX_FILE" ]]; then
+            echo "Indexing BAM file for $sample (CSI)..."
+            samtools index -c -@ "$THREADS" "$BAM_FILE"  # 使用 -c 生成 CSI 索引
+            if [[ $? -ne 0 ]]; then
+                echo "Error: Failed to index BAM file for sample $sample."
+                exit 1
+            fi
+        fi
+    else
+        echo "BAM and CSI index files for $sample already exist. Skipping."
     fi
 done < "$SAMPLE_LIST"
 
 # Step 5: Assemble transcripts with StringTie
-while read -r READ1 READ2; do
+while read -r READ1 READ2 || [[ -n "$READ1" ]]; do
     sample=$(basename "$READ1" | sed 's/_1.*//')
     GTF_FILE="$WORK_DIR/${sample}.gtf"
     if [[ ! -f "$GTF_FILE" ]]; then
@@ -121,6 +176,7 @@ while read -r READ1 READ2; do
         fi
     fi
 done < "$SAMPLE_LIST"
+
 
 # Step 6: Merge transcripts
 MERGED_GTF="$WORK_DIR/candidate_transcript.gtf"
@@ -236,36 +292,43 @@ fi
 # Step 15: Extract specific lncRNA types
 if [[ ! -f "$WORK_DIR/LncRNA_antisense_exonic.txt" ]]; then
     echo "Classifying and extracting specific lncRNA types..."
+    
+    # 提取反义外显子 lncRNA
     awk -F '\t' '{if(NF >= 10 && $1==1 && $6 == "antisense" && $10 == "exonic") {print $0}}' "$LNC_RNA_CLASSES" > "$WORK_DIR/LncRNA_antisense_exonic.txt"
     if [[ $? -ne 0 ]]; then
         echo "Error: Extracting antisense exonic lncRNAs failed."
         exit 1
     fi
 
+    # 提取内含子 lncRNA
     awk -F '\t' '{if(NF >= 10 && $1==1 && $6 == "sense" && $10 == "intronic") {print $0}}' "$LNC_RNA_CLASSES" > "$WORK_DIR/LncRNA_intronic.txt"
     if [[ $? -ne 0 ]]; then
         echo "Error: Extracting intronic lncRNAs failed."
         exit 1
     fi
 
+    # 提取上游 lncRNA
     awk -F '\t' '{if(NF >= 10 && $1==1 && $6 == "sense" && $7 == "intergenic" && $8 <= 2000 && $10 == "upstream") {print $0}}' "$LNC_RNA_CLASSES" > "$WORK_DIR/LncRNA_upstream.txt"
     if [[ $? -ne 0 ]]; then
         echo "Error: Extracting upstream lncRNAs failed."
         exit 1
     fi
 
+    # 提取下游 lncRNA
     awk -F '\t' '{if(NF >= 10 && $1==1 && $6 == "sense" && $7 == "intergenic" && $8 <= 2000 && $10 == "downstream") {print $0}}' "$LNC_RNA_CLASSES" > "$WORK_DIR/LncRNA_downstream.txt"
     if [[ $? -ne 0 ]]; then
         echo "Error: Extracting downstream lncRNAs failed."
         exit 1
     fi
 
+    # 提取间隔 lncRNA
     awk -F '\t' '{if(NF >= 10 && $1==1 && $7 == "intergenic" && $8 > 2000) {print $0}}' "$LNC_RNA_CLASSES" > "$WORK_DIR/LncRNA_intergenic.txt"
     if [[ $? -ne 0 ]]; then
         echo "Error: Extracting intergenic lncRNAs failed."
         exit 1
     fi
 
+    # 提取双向 lncRNA
     awk -F '\t' '{if(NF >= 10 && $1==1 && $6 == "antisense" && $7 == "intergenic" && $8 <= 2000 && $10 == "upstream") {print $0}}' "$LNC_RNA_CLASSES" > "$WORK_DIR/LncRNA_Bidirectional.txt"
     if [[ $? -ne 0 ]]; then
         echo "Error: Extracting bidirectional lncRNAs failed."
